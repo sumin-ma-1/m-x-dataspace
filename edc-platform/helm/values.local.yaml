@@ -1,0 +1,42 @@
+# 개발/로컬 기준 기본 값
+# 주의: 실제 인증서/토큰/민감정보는 이 파일에 직접 넣지 말고 secret manager를 사용하세요.
+
+global:
+  environment: local
+
+connector:
+  controlPlane:
+    replicaCount: 1
+    service:
+      type: ClusterIP
+      port: 8282
+  dataPlane:
+    replicaCount: 1
+    service:
+      type: ClusterIP
+      port: 8185
+
+security:
+  tls:
+    enabled: true
+    # 실제 운영에서는 cert-manager 또는 사내 PKI와 연동
+    mode: "placeholder"
+  auth:
+    managementApi:
+      # 예시: oauth2, mTLS, apiKey 중 실제 정책으로 교체
+      type: "oauth2-placeholder"
+
+tunnel:
+  enabled: true
+  provider: "custom"
+  # 커스텀 터널 어댑터가 참조할 연결 대상
+  endpoint: "tunnel.local:9443"
+  timeoutSeconds: 15
+
+observability:
+  logs:
+    level: INFO
+  metrics:
+    enabled: true
+  tracing:
+    enabled: true
