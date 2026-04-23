@@ -1,0 +1,3 @@
+[submodule "edc-core-fork/Connector"]
+	path = edc-core-fork/Connector
+	url = https://github.com/eclipse-edc/Connector.git
