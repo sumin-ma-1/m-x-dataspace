@@ -67,7 +67,7 @@ flowchart LR
 ```
 
 실제 포트·환경 변수는 루트 `docker-compose.yml` 과 `edc-core-fork/runtime/README.md` 를 보면 됩니다.  
-카탈로그·**계약 협상**·**데이터 전송(TransferRequest, 기본 HttpData-PUSH → COMPLETED)** 까지는 `docker compose up` 후 `python scripts/catalog_demo.py` 로 재현할 수 있습니다.
+카탈로그·**계약 협상**·**데이터 전송(TransferRequest, 기본 HttpData-PUSH → COMPLETED)** 까지 `docker compose up` 후 `python scripts/catalog_demo.py` 로 재현할 수 있습니다.
 
 ---
 
@@ -97,7 +97,7 @@ flowchart LR
    `docker compose --profile ui --profile app up -d --build edc-cp edc-dp provider-cp provider-dp app edc-ui`
 
    - UI 주소: `http://localhost:18080`
-   - UI는 Eclipse EDC DataDashboard 오픈소스(https://github.com/eclipse-edc/DataDashboard)를 빌드해 사용
+   - UI는 Eclipse EDC DataDashboard 오픈소스(https://github.com/eclipse-edc/DataDashboard) 를 빌드해 사용
    - 호출 경로: **UI -> FastAPI(app) -> EDC**
    - 로컬 프록시 경로:
      - Consumer: `/consumer/api/...`
