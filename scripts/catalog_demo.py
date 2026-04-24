@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """
-Local EDC demo: seed provider (policy, asset, contract definition), optional catalog
-peek, then **contract negotiation** through Management API v3 (0.14.x).
+Local EDC demo: seed provider, catalog peek, contract negotiation, then **data transfer**
+via Management API v3 (0.14.x).
 
 References (Eclipse EDC Connector):
-  - Participant.initContractNegotiation / negotiateContract — management-api-test-fixtures
-  - CatalogApiEndToEndTest — DatasetRequest POST .../v3/catalog/dataset/request
-  - ContractNegotiationApiV3 — ContractRequest schema (edc: context, odrl Offer policy)
-  - ContractRequestValidator — policy must be odrl:Offer with assigner + target @id
+  - Participant.initContractNegotiation / initiateTransfer / awaitTransferToBeInState
+    — management-api-test-fixtures
+  - CatalogApiEndToEndTest — DatasetRequest
+  - ContractNegotiationApiV3 — ContractRequest
+  - TransferProcessApiV3 / TransferProcessApiEndToEndTest — TransferRequest + POST .../transferprocesses
+  - TransferRequestValidator — protocol, contractId, counterPartyAddress, transferType, dataDestination
 
 Requires: docker compose up (consumer + provider). Uses stdlib only.
 
 Notes:
-  - Assets used for **negotiation** must not set isCatalog; otherwise dataset/request
-    returns a nested Catalog without odrl:hasPolicy.
-  - counterPartyAddress must be reachable from the consumer CP (e.g. provider-cp:8282).
+  - Negotiation assets must not set isCatalog (see dataset/hasPolicy note in repo README).
+  - TransferRequest `dataDestination` for HttpData uses nested `properties.baseUrl` (see TransferProcessApiEndToEndTest).
+  - Default transfer type is taken from the dataset distribution (e.g. HttpData-PULL).
 """
 
 from __future__ import annotations
@@ -248,6 +250,84 @@ def _contract_request_body(
     }
 
 
+def _default_transfer_type(dataset: dict[str, Any]) -> str:
+    """
+    Pick a transfer type from dataset distributions.
+    Prefer **PUSH** for local Docker demos (consumer supplies sink URL; provider DP pushes),
+    then PULL; default HttpData-PUSH (TransferProcessApiEndToEndTest style).
+    """
+    dists = dataset.get("distribution") or []
+    push: str | None = None
+    pull: str | None = None
+    for d in dists:
+        if not isinstance(d, dict):
+            continue
+        fmt = d.get("format")
+        if not fmt:
+            continue
+        fs = str(fmt).upper()
+        if "PUSH" in fs:
+            push = str(fmt)
+        if "PULL" in fs:
+            pull = str(fmt)
+    if push:
+        return push
+    if pull:
+        return pull
+    return "HttpData-PUSH"
+
+
+def _transfer_request_body_v3(
+    *,
+    contract_agreement_id: str,
+    provider_dsp: str,
+    transfer_type: str,
+    sink_base_url: str,
+) -> dict[str, Any]:
+    # TransferProcessApiEndToEndTest#create — dataDestination uses properties.baseUrl.
+    return {
+        "@context": _ctx_edc_prefix(),
+        "@type": "TransferRequest",
+        "protocol": DATASPACE_PROTOCOL_HTTP_V_2025_1,
+        "counterPartyAddress": provider_dsp,
+        "contractId": contract_agreement_id,
+        "transferType": transfer_type,
+        "dataDestination": {
+            "@type": "DataAddress",
+            "type": "HttpData",
+            "properties": {
+                "baseUrl": sink_base_url,
+            },
+        },
+    }
+
+
+def _wait_transfer_state(
+    consumer_mgmt: str,
+    transfer_id: str,
+    wanted: str,
+    timeout_sec: int,
+) -> dict[str, Any]:
+    base = consumer_mgmt.rstrip("/") + "/v3/transferprocesses/" + transfer_id + "/state"
+    deadline = time.time() + timeout_sec
+    last: dict[str, Any] = {}
+    while time.time() < deadline:
+        last = _get_json(base)  # type: ignore[assignment]
+        if not isinstance(last, dict):
+            raise RuntimeError(f"unexpected transfer state payload: {last!r}")
+        state = last.get("state")
+        if state == wanted:
+            return last
+        if state in ("TERMINATED", "ERROR"):
+            raise RuntimeError(
+                f"transfer ended in state {state}: {json.dumps(last)[:2000]}"
+            )
+        time.sleep(0.5)
+    raise RuntimeError(
+        f"transfer {transfer_id} not {wanted} within {timeout_sec}s; last={json.dumps(last)[:1500]}"
+    )
+
+
 def _wait_negotiation_finalized(
     consumer_mgmt: str, negotiation_id: str, timeout_sec: int
 ) -> dict[str, Any]:
@@ -271,7 +351,7 @@ def _wait_negotiation_finalized(
 
 def main() -> int:
     p = argparse.ArgumentParser(
-        description="EDC catalog + contract negotiation demo (consumer -> provider)."
+        description="EDC catalog + contract negotiation + transfer demo (consumer -> provider)."
     )
     p.add_argument(
         "--consumer-mgmt",
@@ -323,6 +403,32 @@ def main() -> int:
         "--verbose",
         action="store_true",
         help="Print full catalog JSON (can be large).",
+    )
+    p.add_argument(
+        "--skip-transfer",
+        action="store_true",
+        help="Stop after contract negotiation (no TransferRequest).",
+    )
+    p.add_argument(
+        "--sink-base-url",
+        default="https://httpbin.org/post",
+        help="HttpData dataDestination.properties.baseUrl (consumer sink for PULL).",
+    )
+    p.add_argument(
+        "--transfer-type",
+        default=None,
+        help="Override transferType (default: prefer PUSH from dataset, else HttpData-PUSH).",
+    )
+    p.add_argument(
+        "--transfer-success-state",
+        default="COMPLETED",
+        help="Poll transfer /state until this state (e.g. COMPLETED or STARTED).",
+    )
+    p.add_argument(
+        "--transfer-timeout",
+        type=int,
+        default=180,
+        help="Seconds to wait for transfer state.",
     )
     args = p.parse_args()
 
@@ -398,19 +504,43 @@ def main() -> int:
     print("==> Waiting for FINALIZED …")
     final = _wait_negotiation_finalized(cm, neg_id, args.negotiation_timeout)
     agreement_id = final.get("contractAgreementId")
-    print("==> Result")
-    print(
-        json.dumps(
-            {
-                "negotiationId": neg_id,
-                "state": final.get("state"),
-                "contractAgreementId": agreement_id,
-                "assetId": trade_asset_id,
-            },
-            indent=2,
-            ensure_ascii=False,
+    if not agreement_id:
+        raise RuntimeError("negotiation FINALIZED but contractAgreementId is missing")
+
+    result: dict[str, Any] = {
+        "negotiationId": neg_id,
+        "negotiationState": final.get("state"),
+        "contractAgreementId": agreement_id,
+        "assetId": trade_asset_id,
+    }
+
+    if not args.skip_transfer:
+        xfer_type = args.transfer_type or _default_transfer_type(dataset)
+        print(f"==> Initiating transfer (type={xfer_type}) …")
+        tr_body = _transfer_request_body_v3(
+            contract_agreement_id=str(agreement_id),
+            provider_dsp=args.provider_dsp,
+            transfer_type=xfer_type,
+            sink_base_url=args.sink_base_url,
         )
-    )
+        _, tp_init = _post_json(f"{cm}/{ver}/transferprocesses", tr_body)
+        tp_id = _extract_id(tp_init)
+        print(f"    transfer process id: {tp_id}")
+
+        print(
+            f"==> Waiting for transfer state {args.transfer_success_state!r} (max {args.transfer_timeout}s) …"
+        )
+        tp_state = _wait_transfer_state(
+            cm,
+            tp_id,
+            args.transfer_success_state,
+            args.transfer_timeout,
+        )
+        result["transferProcessId"] = tp_id
+        result["transferState"] = tp_state.get("state")
+
+    print("==> Result")
+    print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0
 
 
