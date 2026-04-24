@@ -1,0 +1,20 @@
+[
+  {
+    "connectorName": "Consumer",
+    "managementUrl": "/consumer/api/management",
+    "defaultUrl": "/consumer/api",
+    "protocolUrl": "http://app:8000/proxy/consumer/protocol/2025-1",
+    "federatedCatalogEnabled": false,
+    "federatedCatalogUrl": "",
+    "did": "did:web:consumer.local"
+  },
+  {
+    "connectorName": "Provider",
+    "managementUrl": "/provider/api/management",
+    "defaultUrl": "/provider/api",
+    "protocolUrl": "http://app:8000/proxy/provider/protocol/2025-1",
+    "federatedCatalogEnabled": false,
+    "federatedCatalogUrl": "",
+    "did": "did:web:provider.local"
+  }
+]

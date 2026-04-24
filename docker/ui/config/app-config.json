@@ -1,0 +1,14 @@
+{
+  "appTitle": "EDC Data Dashboard (Local Demo)",
+  "healthCheckIntervalSeconds": 30,
+  "enableUserConfig": false,
+  "menuItems": [
+    { "text": "Home", "materialSymbol": "home_app_logo", "routerPath": "home", "divider": true },
+    { "text": "Catalog", "materialSymbol": "book_ribbon", "routerPath": "catalog" },
+    { "text": "Assets", "materialSymbol": "deployed_code_update", "routerPath": "assets" },
+    { "text": "Policy Definitions", "materialSymbol": "policy", "routerPath": "policies" },
+    { "text": "Contract Definitions", "materialSymbol": "contract_edit", "routerPath": "contract-definitions", "divider": true },
+    { "text": "Contracts", "materialSymbol": "handshake", "routerPath": "contracts" },
+    { "text": "Transfer History", "materialSymbol": "schedule_send", "routerPath": "transfer-history" }
+  ]
+}

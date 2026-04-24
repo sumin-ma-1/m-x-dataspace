@@ -20,14 +20,32 @@
 #   python scripts/catalog_demo.py
 
 services:
+  edc-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.edc-ui
+    depends_on:
+      edc-cp:
+        condition: service_healthy
+      provider-cp:
+        condition: service_healthy
+    ports:
+      - "18080:8080"
+    profiles:
+      - ui
+
   app:
     build:
       context: .
       dockerfile: catena-x-sw-sample/Dockerfile
     environment:
       APP_CONSUMER_MGMT_URL: http://edc-cp:8181/api/management
+      APP_CONSUMER_DEFAULT_URL: http://edc-cp:19191/api
+      APP_CONSUMER_PROTOCOL_URL: http://edc-cp:8282/api/protocol
       APP_PROVIDER_MGMT_URL: http://provider-cp:8181/api/management
+      APP_PROVIDER_DEFAULT_URL: http://provider-cp:19191/api
       APP_PROVIDER_DSP_URL: http://provider-cp:8282/api/protocol/2025-1
+      APP_PROVIDER_PROTOCOL_URL: http://provider-cp:8282/api/protocol
       APP_COUNTER_PARTY_ID: counter-party-id
       APP_PROVIDER_PARTICIPANT_ID: anonymous
     depends_on:

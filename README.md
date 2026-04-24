@@ -93,6 +93,49 @@ flowchart LR
    - `GET /api/v1/health` → 헬스체크
    - 전체 API 스모크 검증: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify_api.ps1`
 
+5. **공식/커뮤니티 EDC Dashboard UI 연동 (Docker)**  
+   `docker compose --profile ui --profile app up -d --build edc-cp edc-dp provider-cp provider-dp app edc-ui`
+
+   - UI 주소: `http://localhost:18080`
+   - UI는 Eclipse EDC DataDashboard 오픈소스(https://github.com/eclipse-edc/DataDashboard)를 빌드해 사용
+   - 호출 경로: **UI -> FastAPI(app) -> EDC**
+   - 로컬 프록시 경로:
+     - Consumer: `/consumer/api/...`
+     - Provider: `/provider/api/...`
+   - UI E2E 체크리스트: `docs/ui-e2e-checklist.md`
+
+```mermaid
+flowchart LR
+    Browser["Browser (DataDashboard UI)"]
+    Nginx["edc-ui (nginx)"]
+    API["app (FastAPI proxy)"]
+    CCP["edc-cp (Consumer CP)"]
+    PCP["provider-cp (Provider CP)"]
+    CDP["edc-dp (Consumer DP)"]
+    PDP["provider-dp (Provider DP)"]
+
+    Browser --> Nginx --> API
+    API --> CCP
+    API --> PCP
+    CCP -. DSP .-> API
+    API -. DSP proxy .-> PCP
+    CCP <-->|selector/control| CDP
+    PCP <-->|selector/control| PDP
+```
+
+### UI 트러블슈팅 요약
+
+- `Catalog request`에서 `504` 발생 시:
+  - 원인: 프록시 경로에서 블로킹 I/O로 인한 요청 대기
+  - 조치: `app/api.py` 프록시는 `asyncio.to_thread(...)` 기반으로 수정됨
+  - 확인: `docker compose logs -f app edc-ui`
+- `Assets` 생성 팝업에서 `Type` 드롭다운 미표시:
+  - 원인: `GET /v3/dataplanes` 결과가 빈 배열(`[]`)
+  - 조치: `docker compose restart edc-dp provider-dp`
+- `HttpData-PUSH` 전송이 `TERMINATED`:
+  - 원인: sink를 읽기 endpoint(`https://httpbin.org/get`, `GET`)로 지정
+  - 권장: `baseUrl=https://httpbin.org/post`, `method=POST`
+
 ---
 
 ## 저장소 루트에서 자주 쓰는 파일

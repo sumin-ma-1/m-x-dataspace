@@ -1,14 +1,62 @@
 from __future__ import annotations
 
+import asyncio
 import os
+import urllib.error
+import urllib.request
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from .edc_flow import EdcFlowClient
 
 
 app = FastAPI(title="m-x-dataspace API", version="v1")
+
+_PROXY_TARGETS = {
+    "consumer": {
+        "management": os.getenv(
+            "APP_CONSUMER_MGMT_URL", "http://127.0.0.1:18181/api/management"
+        ),
+        "default": os.getenv("APP_CONSUMER_DEFAULT_URL", "http://127.0.0.1:19191/api"),
+        "protocol": os.getenv(
+            "APP_CONSUMER_PROTOCOL_URL", "http://127.0.0.1:18282/api/protocol"
+        ),
+    },
+    "provider": {
+        "management": os.getenv(
+            "APP_PROVIDER_MGMT_URL", "http://127.0.0.1:28181/api/management"
+        ),
+        "default": os.getenv("APP_PROVIDER_DEFAULT_URL", "http://127.0.0.1:29191/api"),
+        "protocol": os.getenv(
+            "APP_PROVIDER_PROTOCOL_URL", "http://127.0.0.1:28282/api/protocol"
+        ),
+    },
+}
+
+
+def _forward_proxy_request(
+    url: str, method: str, body: bytes, headers: dict[str, str]
+) -> tuple[bytes, str, int]:
+    upstream_req = urllib.request.Request(
+        url,
+        data=body if body else None,
+        method=method,
+        headers=headers,
+    )
+    try:
+        with urllib.request.urlopen(upstream_req, timeout=180) as resp:
+            return (
+                resp.read(),
+                resp.headers.get("Content-Type", "application/json"),
+                resp.status,
+            )
+    except urllib.error.HTTPError as e:
+        return (
+            e.read(),
+            e.headers.get("Content-Type", "application/json"),
+            e.code,
+        )
 
 
 class FlowConfig(BaseModel):
@@ -103,6 +151,51 @@ class TransferResponse(BaseModel):
 @app.get("/api/v1/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.api_route(
+    "/proxy/{connector}/{api_kind}/{path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+)
+async def proxy_edc(
+    connector: str,
+    api_kind: str,
+    path: str,
+    request: Request,
+) -> Response:
+    conn = _PROXY_TARGETS.get(connector)
+    if conn is None:
+        raise HTTPException(status_code=404, detail=f"Unknown connector: {connector}")
+    base = conn.get(api_kind)
+    if base is None:
+        raise HTTPException(status_code=404, detail=f"Unknown api kind: {api_kind}")
+
+    base = base.rstrip("/")
+    url = f"{base}/{path.lstrip('/')}"
+    if request.url.query:
+        url = f"{url}?{request.url.query}"
+
+    body = await request.body()
+    headers = {
+        "Accept": request.headers.get("accept", "application/json"),
+    }
+    if request.headers.get("content-type"):
+        headers["Content-Type"] = request.headers["content-type"]
+    if request.headers.get("authorization"):
+        headers["Authorization"] = request.headers["authorization"]
+
+    try:
+        raw, content_type, status = await asyncio.to_thread(
+            _forward_proxy_request,
+            url,
+            request.method,
+            body,
+            headers,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=repr(e)) from e
+
+    return Response(content=raw, status_code=status, media_type=content_type)
 
 
 @app.post("/api/v1/assets", response_model=SeedAssetResponse)
