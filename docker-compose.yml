@@ -2,15 +2,22 @@
 # 문서: https://docs.docker.com/compose/
 #
 # 포트 요약 (호스트):
-#   19191 — CP 공개 API (web.http)
-#   19199 — CP Control API (web.http.control → 컨테이너 9191)
-#   19192 — DP 공개 API
-#   19299 — DP Control API (컨테이너 9192)
+#   Consumer (edc-cp / edc-dp):
+#     19191 — CP 공개 API (web.http)
+#     19199 — CP Control API (web.http.control → 컨테이너 9191)
+#     18181 — CP Management API (web.http.management → 8181)  … Catalog/자산/정책
+#     18282 — CP DSP Protocol (web.http.protocol → 8282)      … counterPartyAddress 베이스
+#     19192 — DP 공개 API
+#     19299 — DP Control API (컨테이너 9192)
+#   Provider (provider-cp / provider-dp):
+#     29191, 29199, 28181, 28282, 29192, 29299 (동일 역할)
 #
 # 사용:
 #   docker compose up --build
 # 검증 스크립트:
 #   powershell -ExecutionPolicy Bypass -File scripts/verify.ps1
+# 카탈로그 데모 (호스트에서, 스택 기동 후):
+#   python scripts/catalog_demo.py
 
 services:
   app:
@@ -27,6 +34,8 @@ services:
     ports:
       - "19191:19191"
       - "19199:9191"
+      - "18181:8181"
+      - "18282:8282"
     healthcheck:
       test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:19191/api/check/liveness"]
       interval: 10s
@@ -42,8 +51,40 @@ services:
       edc-cp:
         condition: service_healthy
     environment:
-      # DP 의 RemoteDataPlaneSelectorService 가 CP Control API 를 호출 (컨테이너 DNS: edc-cp)
       EDC_DPF_SELECTOR_URL: http://edc-cp:9191/api/control/v1/dataplanes
     ports:
       - "19192:19192"
       - "19299:9192"
+
+  provider-cp:
+    build:
+      context: .
+      dockerfile: edc-core-fork/runtime/Dockerfile.control-plane
+    volumes:
+      - ./edc-core-fork/runtime/minimal-control-plane/docker/dataspaceconnector-configuration.provider.properties:/app/dataspaceconnector-configuration.properties:ro
+    ports:
+      - "29191:19191"
+      - "29199:9191"
+      - "28181:8181"
+      - "28282:8282"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:19191/api/check/liveness"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 90s
+
+  provider-dp:
+    build:
+      context: .
+      dockerfile: edc-core-fork/runtime/Dockerfile.data-plane
+    depends_on:
+      provider-cp:
+        condition: service_healthy
+    environment:
+      EDC_DPF_SELECTOR_URL: http://provider-cp:9191/api/control/v1/dataplanes
+    volumes:
+      - ./edc-core-fork/runtime/minimal-data-plane/docker/dataspaceconnector-configuration.provider.properties:/app/dataspaceconnector-configuration.properties:ro
+    ports:
+      - "29192:19192"
+      - "29299:9192"

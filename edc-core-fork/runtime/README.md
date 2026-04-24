@@ -21,13 +21,29 @@ JDK 21 + Gradle 설치 후:
 
 ```bash
 cd edc-core-fork/runtime
-gradle :minimal-control-plane:shadowJar :minimal-data-plane:shadowJar
+gradle :minimal-control-plane:installDist :minimal-data-plane:installDist
 ```
 
 ## Docker
 
 루트의 `docker-compose.yml` 또는 각 `Dockerfile.*`를 사용하세요.  
 빌드는 공식 Gradle 이미지로 수행하며, 런타임은 Temurin JRE입니다.
+
+### Management API / DSP Protocol (카탈로그)
+
+Control Plane은 기본적으로 **별도 포트**에 Management(`8181`, `/api/management`)와 DSP Protocol(`8282`, `/api/protocol`)을 띄웁니다.  
+`docker-compose.yml`에서 호스트로 매핑해 두었으므로, **카탈로그 요청**은 Eclipse EDC 테스트와 같은 형태로 호출할 수 있습니다.
+
+- 참고: [ManagementEndToEndTestContext](https://github.com/eclipse-edc/Connector/blob/main/system-tests/management-api/management-api-test-runner/src/test/java/org/eclipse/edc/test/e2e/managementapi/ManagementEndToEndTestContext.java) — `providerDsp2025url()` = `<protocolBase>/2025-1`
+- 참고: [CatalogApiV4EndToEndTest](https://github.com/eclipse-edc/Connector/blob/main/system-tests/management-api/management-api-test-runner/src/test/java/org/eclipse/edc/test/e2e/managementapi/v4/CatalogApiV4EndToEndTest.java) — `POST .../v4/catalog/request` + `CatalogRequest` 본문
+
+저장소 루트에서 스택을 올린 뒤 호스트에서:
+
+```bash
+python scripts/catalog_demo.py
+```
+
+(Consumer Management는 호스트 `18181`로 호출; `counterPartyAddress`는 **Consumer CP가** Provider에 붙을 수 있는 URL이어야 하므로 Compose 기본값은 `http://provider-cp:8282/api/protocol/2025-1` 입니다. 호스트에서 Provider DSP만 직접 curl 할 때는 `28282` 포트를 쓰면 됩니다.)
 
 ### 구현 메모 (검증 과정에서 확정)
 

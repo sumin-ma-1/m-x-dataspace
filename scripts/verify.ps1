@@ -31,19 +31,21 @@ Write-Step "2) docker compose config (syntax)"
 docker compose config | Out-Null
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Step "3) docker compose build (edc-cp, edc-dp)"
-docker compose build edc-cp edc-dp
+Write-Step "3) docker compose build (consumer + provider CP/DP)"
+docker compose build edc-cp edc-dp provider-cp provider-dp
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Step "4) docker compose up (edc-cp, edc-dp)"
-docker compose up -d edc-cp edc-dp
+Write-Step "4) docker compose up (consumer + provider CP/DP)"
+docker compose up -d edc-cp edc-dp provider-cp provider-dp
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 try {
-    Write-Step "5) Wait for health (max ~180s)"
-    $deadline = (Get-Date).AddSeconds(180)
+    Write-Step "5) Wait for health (max ~240s)"
+    $deadline = (Get-Date).AddSeconds(240)
     $cpOk = $false
     $dpOk = $false
+    $pCpOk = $false
+    $pDpOk = $false
     while ((Get-Date) -lt $deadline) {
         if (-not $cpOk) {
             try {
@@ -57,14 +59,28 @@ try {
                 $dpOk = $true
             } catch { }
         }
-        if ($cpOk -and $dpOk) { break }
+        if (-not $pCpOk) {
+            try {
+                Invoke-WebRequest -Uri "http://127.0.0.1:29191/api/check/liveness" -UseBasicParsing -TimeoutSec 3 | Out-Null
+                $pCpOk = $true
+            } catch { }
+        }
+        if (-not $pDpOk) {
+            try {
+                Invoke-WebRequest -Uri "http://127.0.0.1:29192/api/check/liveness" -UseBasicParsing -TimeoutSec 3 | Out-Null
+                $pDpOk = $true
+            } catch { }
+        }
+        if ($cpOk -and $dpOk -and $pCpOk -and $pDpOk) { break }
         Start-Sleep -Seconds 2
     }
 
     if (-not $cpOk) { throw "edc-cp did not become healthy on http://127.0.0.1:19191/api/check/liveness" }
     if (-not $dpOk) { throw "edc-dp did not become healthy on http://127.0.0.1:19192/api/check/liveness" }
+    if (-not $pCpOk) { throw "provider-cp did not become healthy on http://127.0.0.1:29191/api/check/liveness" }
+    if (-not $pDpOk) { throw "provider-dp did not become healthy on http://127.0.0.1:29192/api/check/liveness" }
 
-    Write-Host "CP/DP liveness OK." -ForegroundColor Green
+    Write-Host "Consumer + provider CP/DP liveness OK." -ForegroundColor Green
 }
 finally {
     Write-Step "6) docker compose down"

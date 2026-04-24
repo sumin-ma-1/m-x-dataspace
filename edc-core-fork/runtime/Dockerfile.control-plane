@@ -22,7 +22,7 @@ WORKDIR /app
 COPY --from=build /build/minimal-control-plane/build/install/minimal-cp /opt/edc
 COPY edc-core-fork/runtime/minimal-control-plane/docker/dataspaceconnector-configuration.properties /app/dataspaceconnector-configuration.properties
 WORKDIR /app
-EXPOSE 19191
+EXPOSE 19191 9191 8181 8282
 # Observability: web.http.path=/api + Jetty 컨텍스트 (EDC 0.14.x 기준 /api/check/liveness)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=5 \
   CMD wget -q -O- http://127.0.0.1:19191/api/check/liveness || exit 1
