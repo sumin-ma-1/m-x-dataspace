@@ -82,6 +82,17 @@ flowchart LR
 3. **수동으로만 올리기**  
    `docker compose up --build`
 
+4. **FastAPI 실행 (UI 연동용 백엔드)**  
+   `cd catena-x-sw-sample && uvicorn app.api:app --host 0.0.0.0 --port 8000`
+
+   - `POST /api/v1/contract` → 자산/정책/계약정의 시드 + 협상(`contractAgreementId` 반환)
+   - `POST /api/v1/transfer` → `contractAgreementId`로 전송 시작 + 상태 대기
+   - `POST /api/v1/assets` → 정책+자산+계약정의 시드(단계형 API)
+   - `POST /api/v1/catalog` → 카탈로그 조회
+   - `POST /api/v1/dataset` → 특정 자산 데이터셋(오퍼) 조회
+   - `GET /api/v1/health` → 헬스체크
+   - 전체 API 스모크 검증: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify_api.ps1`
+
 ---
 
 ## 저장소 루트에서 자주 쓰는 파일
@@ -89,6 +100,7 @@ flowchart LR
 - `docker-compose.yml` — 로컬 CP/DP 기동
 - `scripts/verify.ps1` — 테스트 + Compose 빌드/기동/헬스 확인 + 정리
 - `scripts/catalog_demo.py` — 시드 → 카탈로그 → 협상(`FINALIZED`) → 전송(`transferprocesses`, 기본 `COMPLETED` 대기)
+- `catena-x-sw-sample/app/api.py` — `/api/v1/contract`, `/api/v1/transfer` FastAPI 엔드포인트
 - `.gitmodules` — `edc-core-fork/Connector` 가 **정식 submodule** 로 연결됨
 
 ---

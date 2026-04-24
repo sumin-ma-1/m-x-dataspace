@@ -24,6 +24,19 @@ services:
     build:
       context: .
       dockerfile: catena-x-sw-sample/Dockerfile
+    environment:
+      APP_CONSUMER_MGMT_URL: http://edc-cp:8181/api/management
+      APP_PROVIDER_MGMT_URL: http://provider-cp:8181/api/management
+      APP_PROVIDER_DSP_URL: http://provider-cp:8282/api/protocol/2025-1
+      APP_COUNTER_PARTY_ID: counter-party-id
+      APP_PROVIDER_PARTICIPANT_ID: anonymous
+    depends_on:
+      edc-cp:
+        condition: service_healthy
+      provider-cp:
+        condition: service_healthy
+    ports:
+      - "18000:8000"
     profiles:
       - app
 

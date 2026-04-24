@@ -19,5 +19,4 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY catena-x-sw-sample/ /app/catena-x-sw-sample/
 WORKDIR /app/catena-x-sw-sample
-# 샘플 컨테이너: 실제 서비스 진입점으로 교체하세요 (FastAPI/uvicorn 등).
-CMD ["python", "-c", "print('catena-x-sw-sample: OK'); __import__('time').sleep(999999)"]
+CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000"]
