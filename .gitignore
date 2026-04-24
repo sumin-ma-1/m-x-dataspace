@@ -1,2 +1,7 @@
 __pycache__/
+venv/
 *.pyc
+
+# Gradle (로컬에서 runtime 빌드 시)
+edc-core-fork/runtime/**/build/
+edc-core-fork/runtime/.gradle/

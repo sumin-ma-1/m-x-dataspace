@@ -1,0 +1,15 @@
+# Docker build context 축소 및 민감/불필요 경로 제외
+# 참고: https://docs.docker.com/build/concepts/context/
+
+.git
+**/.gradle
+**/build
+venv
+.venv
+__pycache__
+*.pyc
+.idea
+.vscode
+
+# 이 런처 빌드는 Maven Central 의존만 사용하므로 서브모듈 Connector 전체를 컨텍스트에 넣지 않음(용량·시간 절약)
+edc-core-fork/Connector

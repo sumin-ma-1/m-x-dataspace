@@ -1,0 +1,29 @@
+# syntax=docker/dockerfile:1
+# Control Plane 최소 런타임 이미지.
+# 빌드 컨텍스트: 저장소 루트(.)
+#   docker build -f edc-core-fork/runtime/Dockerfile.control-plane .
+#
+# Gradle 빌드 이미지: https://hub.docker.com/_/gradle
+# JRE 이미지: https://hub.docker.com/_/eclipse-temurin
+#
+# EDC 의존성 조립은 Maven Central 의 controlplane-base-bom 을 사용합니다.
+# https://central.sonatype.com/artifact/org.eclipse.edc/controlplane-base-bom
+
+FROM gradle:8.11.1-jdk21-alpine AS build
+WORKDIR /build
+COPY edc-core-fork/runtime /build
+# fat jar(Shadow) 대신 Gradle application installDist — 클래스로더/SPI 순서가 EDC 부트와 더 잘 맞습니다.
+RUN gradle --no-daemon :minimal-control-plane:installDist
+
+FROM eclipse-temurin:21-jre-alpine
+# 헬스체크용 (Alpine 기본 wget)
+RUN apk add --no-cache wget bash
+WORKDIR /app
+COPY --from=build /build/minimal-control-plane/build/install/minimal-cp /opt/edc
+COPY edc-core-fork/runtime/minimal-control-plane/docker/dataspaceconnector-configuration.properties /app/dataspaceconnector-configuration.properties
+WORKDIR /app
+EXPOSE 19191
+# Observability: web.http.path=/api + Jetty 컨텍스트 (EDC 0.14.x 기준 /api/check/liveness)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=5 \
+  CMD wget -q -O- http://127.0.0.1:19191/api/check/liveness || exit 1
+ENTRYPOINT ["/opt/edc/bin/minimal-cp"]

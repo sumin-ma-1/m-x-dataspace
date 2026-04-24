@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1
+# Data Plane 최소 런타임 이미지.
+# 빌드 컨텍스트: 저장소 루트(.)
+#   docker build -f edc-core-fork/runtime/Dockerfile.data-plane .
+#
+# EDC 의존성 조립은 Maven Central 의 dataplane-base-bom 을 사용합니다.
+# https://central.sonatype.com/artifact/org.eclipse.edc/dataplane-base-bom
+
+FROM gradle:8.11.1-jdk21-alpine AS build
+WORKDIR /build
+COPY edc-core-fork/runtime /build
+RUN gradle --no-daemon :minimal-data-plane:installDist
+
+FROM eclipse-temurin:21-jre-alpine
+RUN apk add --no-cache wget bash
+WORKDIR /app
+COPY --from=build /build/minimal-data-plane/build/install/minimal-dp /opt/edc
+COPY edc-core-fork/runtime/minimal-data-plane/docker/dataspaceconnector-configuration.properties /app/dataspaceconnector-configuration.properties
+WORKDIR /app
+EXPOSE 19192
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=5 \
+  CMD wget -q -O- http://127.0.0.1:19192/api/check/liveness || exit 1
+ENTRYPOINT ["/opt/edc/bin/minimal-dp"]

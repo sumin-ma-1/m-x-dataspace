@@ -10,8 +10,11 @@
 
 ## Current state
 
-- `Connector/`: 공식 EDC 원본 clone
+- `Connector/`: 공식 EDC submodule (원본 소스 동기화)
+- `runtime/`: Maven Central BOM 기반 **CP/DP 최소 런처** + Dockerfiles (로컬·CI 검증용)
 - 추가 확장 모듈은 `extensions/`에 관리 (아래 참조)
+
+Docker·Compose·원클릭 검증은 저장소 루트의 `docker-compose.yml`, `scripts/verify.ps1` 을 참고하세요.
 
 ## Why separate from app
 

@@ -22,3 +22,13 @@
 1. 실제 Management API endpoint 및 인증 방식 반영
 2. Outbox를 DB(PostgreSQL 등)와 연결
 3. E2E 테스트에서 CP 협상 -> DP 전송까지 검증
+
+## Docker
+
+저장소 루트에서:
+
+```bash
+docker build -f catena-x-sw-sample/Dockerfile .
+```
+
+전체 검증은 루트 `scripts/verify.ps1` 을 사용하세요.

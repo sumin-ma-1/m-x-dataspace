@@ -1,0 +1,49 @@
+# 로컬 검증용 Compose.
+# 문서: https://docs.docker.com/compose/
+#
+# 포트 요약 (호스트):
+#   19191 — CP 공개 API (web.http)
+#   19199 — CP Control API (web.http.control → 컨테이너 9191)
+#   19192 — DP 공개 API
+#   19299 — DP Control API (컨테이너 9192)
+#
+# 사용:
+#   docker compose up --build
+# 검증 스크립트:
+#   powershell -ExecutionPolicy Bypass -File scripts/verify.ps1
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: catena-x-sw-sample/Dockerfile
+    profiles:
+      - app
+
+  edc-cp:
+    build:
+      context: .
+      dockerfile: edc-core-fork/runtime/Dockerfile.control-plane
+    ports:
+      - "19191:19191"
+      - "19199:9191"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:19191/api/check/liveness"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 90s
+
+  edc-dp:
+    build:
+      context: .
+      dockerfile: edc-core-fork/runtime/Dockerfile.data-plane
+    depends_on:
+      edc-cp:
+        condition: service_healthy
+    environment:
+      # DP 의 RemoteDataPlaneSelectorService 가 CP Control API 를 호출 (컨테이너 DNS: edc-cp)
+      EDC_DPF_SELECTOR_URL: http://edc-cp:9191/api/control/v1/dataplanes
+    ports:
+      - "19192:19192"
+      - "19299:9192"
