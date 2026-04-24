@@ -16,7 +16,7 @@
 #   docker compose up --build
 # 검증 스크립트:
 #   powershell -ExecutionPolicy Bypass -File scripts/verify.ps1
-# 카탈로그 데모 (호스트에서, 스택 기동 후):
+# 카탈로그 + 계약 협상 데모 (호스트에서, 스택 기동 후):
 #   python scripts/catalog_demo.py
 
 services:

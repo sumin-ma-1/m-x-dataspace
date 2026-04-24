@@ -67,7 +67,7 @@ flowchart LR
 ```
 
 실제 포트·환경 변수는 루트 `docker-compose.yml` 과 `edc-core-fork/runtime/README.md` 를 보면 됩니다.  
-카탈로그(Consumer → Provider DSP) 데모는 `docker compose up` 후 `python scripts/catalog_demo.py` 로 재현할 수 있습니다.
+카탈로그와 **계약 협상까지(FINALIZED·contractAgreementId)** 는 `docker compose up` 후 `python scripts/catalog_demo.py` 로 재현할 수 있습니다.
 
 ---
 
@@ -88,7 +88,7 @@ flowchart LR
 
 - `docker-compose.yml` — 로컬 CP/DP 기동
 - `scripts/verify.ps1` — 테스트 + Compose 빌드/기동/헬스 확인 + 정리
-- `scripts/catalog_demo.py` — Provider에 자산·계약 시드 후 Consumer에서 `CatalogRequest` 호출
+- `scripts/catalog_demo.py` — Provider 시드 → 카탈로그 → `DatasetRequest`로 오퍼 추출 → `ContractRequest`로 협상·`FINALIZED` 대기
 - `.gitmodules` — `edc-core-fork/Connector` 가 **정식 submodule** 로 연결됨
 
 ---
