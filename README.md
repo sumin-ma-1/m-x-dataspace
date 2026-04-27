@@ -143,6 +143,7 @@ flowchart LR
 - `docker-compose.yml` — 로컬 CP/DP 기동
 - `scripts/verify.ps1` — 테스트 + Compose 빌드/기동/헬스 확인 + 정리
 - `scripts/catalog_demo.py` — 시드 → 카탈로그 → 협상(`FINALIZED`) → 전송(`transferprocesses`, 기본 `COMPLETED` 대기)
+- `scripts/aas_demo.py` — AAS 식별자/semanticId/submodel endpoint를 EDC Asset 메타데이터로 매핑해 Catalog/Dataset에서 확인
 - `catena-x-sw-sample/app/api.py` — `/api/v1/contract`, `/api/v1/transfer` FastAPI 엔드포인트
 - `.gitmodules` — `edc-core-fork/Connector` 가 **정식 submodule** 로 연결됨
 
