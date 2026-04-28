@@ -102,9 +102,14 @@
 
 - [ ] `AAS` 메뉴 진입
 - [ ] `Load AAS Assets` 버튼으로 Provider의 AAS 메타데이터 포함 자산 조회
+- [ ] `Load Shells` 버튼으로 BaSyx AAS Environment 조회
+- [ ] `Register Sample Shell` 버튼으로 샘플 shell 등록
 - [ ] 행의 Asset ID 버튼 클릭으로 Dataset 조회 폼 자동 채움
 - [ ] `Request Dataset` 실행 후 응답 JSON에서 AAS 관련 속성 확인
   - `aasShellId`
   - `aasSubmodelId`
   - `aasSemanticId`
   - `aasSubmodelEndpoint`
+
+원클릭 검증:
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify_aas.ps1`

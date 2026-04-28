@@ -11,6 +11,8 @@ import { FormsModule } from '@angular/forms';
 export class AasViewComponent {
   loadingAssets = false;
   loadingDataset = false;
+  loadingShells = false;
+  loadingRegister = false;
   error = '';
 
   assetId = '';
@@ -19,6 +21,7 @@ export class AasViewComponent {
 
   aasAssets: Record<string, unknown>[] = [];
   datasetResult: Record<string, unknown> | null = null;
+  shells: Record<string, unknown>[] = [];
 
   async loadAasAssets(): Promise<void> {
     this.error = '';
@@ -83,6 +86,59 @@ export class AasViewComponent {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {
       this.loadingDataset = false;
+    }
+  }
+
+  async loadShellDescriptors(): Promise<void> {
+    this.error = '';
+    this.loadingShells = true;
+    try {
+      const resp = await fetch('/aas/api/shells', {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(`AAS shell query failed: HTTP ${resp.status} ${text}`);
+      }
+      const data = (await resp.json()) as unknown;
+      this.shells = Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
+    } finally {
+      this.loadingShells = false;
+    }
+  }
+
+  async registerSampleShell(): Promise<void> {
+    this.error = '';
+    this.loadingRegister = true;
+    try {
+      const uid = crypto.randomUUID();
+      const shellId = `urn:uuid:${crypto.randomUUID()}`;
+      const body = {
+        id: shellId,
+        idShort: `SampleShell-${uid.substring(0, 8)}`,
+        assetInformation: {
+          assetKind: 'INSTANCE',
+          globalAssetId: `urn:uuid:${crypto.randomUUID()}`,
+        },
+        submodels: [],
+      };
+      const resp = await fetch('/aas/api/shells', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(`AAS sample register failed: HTTP ${resp.status} ${text}`);
+      }
+      await this.loadShellDescriptors();
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
+    } finally {
+      this.loadingRegister = false;
     }
   }
 

@@ -94,7 +94,7 @@ flowchart LR
    - 전체 API 스모크 검증: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify_api.ps1`
 
 5. **공식/커뮤니티 EDC Dashboard UI 연동 (Docker)**  
-   `docker compose --profile ui --profile app up -d --build edc-cp edc-dp provider-cp provider-dp app edc-ui`
+   `docker compose --profile ui --profile app up -d --build edc-cp edc-dp provider-cp provider-dp aas-env app edc-ui`
 
    - UI 주소: `http://localhost:18080`
    - UI는 Eclipse EDC DataDashboard 오픈소스(https://github.com/eclipse-edc/DataDashboard) 를 빌드해 사용
@@ -102,7 +102,9 @@ flowchart LR
    - 로컬 프록시 경로:
      - Consumer: `/consumer/api/...`
      - Provider: `/provider/api/...`
-   - UI E2E 체크리스트: `docs/ui-e2e-checklist.md`
+  - UI E2E 체크리스트: `docs/ui-e2e-checklist.md`
+  - AAS Environment(BaSyx) API(호스트): `http://127.0.0.1:38081/shells`
+  - UI AAS 프록시 경로: `/aas/api/...` -> `FastAPI` -> `aas-env`
 
 ```mermaid
 flowchart LR
@@ -144,6 +146,8 @@ flowchart LR
 - `scripts/verify.ps1` — 테스트 + Compose 빌드/기동/헬스 확인 + 정리
 - `scripts/catalog_demo.py` — 시드 → 카탈로그 → 협상(`FINALIZED`) → 전송(`transferprocesses`, 기본 `COMPLETED` 대기)
 - `scripts/aas_demo.py` — AAS 식별자/semanticId/submodel endpoint를 EDC Asset 메타데이터로 매핑해 Catalog/Dataset에서 확인
+- `scripts/seed_aas_registry.py` — BaSyx AAS Environment에 샘플 shell 등록
+- `scripts/verify_aas.ps1` — one-click AAS 검증(스택 기동 -> registry 시드 -> EDC AAS 시드 -> 프록시 검증 -> 정리)
 - `catena-x-sw-sample/app/api.py` — `/api/v1/contract`, `/api/v1/transfer` FastAPI 엔드포인트
 - `.gitmodules` — `edc-core-fork/Connector` 가 **정식 submodule** 로 연결됨
 

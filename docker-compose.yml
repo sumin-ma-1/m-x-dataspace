@@ -46,6 +46,7 @@ services:
       APP_PROVIDER_DEFAULT_URL: http://provider-cp:19191/api
       APP_PROVIDER_DSP_URL: http://provider-cp:8282/api/protocol/2025-1
       APP_PROVIDER_PROTOCOL_URL: http://provider-cp:8282/api/protocol
+      APP_AAS_REGISTRY_URL: http://aas-env:8081
       APP_COUNTER_PARTY_ID: counter-party-id
       APP_PROVIDER_PARTICIPANT_ID: anonymous
     depends_on:
@@ -53,10 +54,20 @@ services:
         condition: service_healthy
       provider-cp:
         condition: service_healthy
+      aas-env:
+        condition: service_started
     ports:
       - "18000:8000"
     profiles:
       - app
+
+  aas-env:
+    image: eclipsebasyx/aas-environment:2.0.0-SNAPSHOT-521472d
+    ports:
+      - "38081:8081"
+    profiles:
+      - app
+      - ui
 
   edc-cp:
     build:

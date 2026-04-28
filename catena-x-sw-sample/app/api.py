@@ -32,6 +32,9 @@ _PROXY_TARGETS = {
             "APP_PROVIDER_PROTOCOL_URL", "http://127.0.0.1:28282/api/protocol"
         ),
     },
+    "aas": {
+        "registry": os.getenv("APP_AAS_REGISTRY_URL", "http://127.0.0.1:38081"),
+    },
 }
 
 
