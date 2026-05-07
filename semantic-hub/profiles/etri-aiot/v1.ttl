@@ -1,0 +1,58 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <urn:mx:etri-aiot:> .
+
+# Profile constraints for DOI:10.22648/ETRI.2022.D.94 (v1)
+# Derived from sampled rows and domain assumptions.
+
+ex:OperationRecordProfileEtriV1Shape
+  a sh:NodeShape ;
+  sh:targetClass ex:OperationRecord ;
+
+  # CNC controls
+  sh:property [
+    sh:path ex:controlS ;
+    sh:minInclusive 0.0 ;
+    sh:maxInclusive 2202.0 ;
+  ] ;
+  sh:property [
+    sh:path ex:controlF ;
+    sh:minInclusive 0.0 ;
+    sh:maxInclusive 54600.0 ;
+  ] ;
+
+  # tool position bounds
+  sh:property [
+    sh:path ex:toolPosX ;
+    sh:minInclusive -168.0 ;
+    sh:maxInclusive 52.0 ;
+  ] ;
+  sh:property [
+    sh:path ex:toolPosY ;
+    sh:minInclusive -91.0 ;
+    sh:maxInclusive 250.521 ;
+  ] ;
+  sh:property [
+    sh:path ex:toolPosZ ;
+    sh:minInclusive 0.0 ;
+    sh:maxInclusive 189671.0 ;
+  ] ;
+
+  # spindle current bounds
+  sh:property [
+    sh:path ex:spindleCurrentU ;
+    sh:minInclusive 0.0 ;
+    sh:maxInclusive 50.0 ;
+  ] ;
+  sh:property [
+    sh:path ex:spindleCurrentV ;
+    sh:minInclusive 0.0 ;
+    sh:maxInclusive 99.98 ;
+  ] ;
+
+  # label classes observed in sample
+  sh:property [
+    sh:path ex:statusLabel ;
+    sh:in ( "0"^^xsd:string "201"^^xsd:string "202"^^xsd:string ) ;
+  ] .
+

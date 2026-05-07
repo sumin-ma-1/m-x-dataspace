@@ -2,6 +2,9 @@ __pycache__/
 venv/
 *.pyc
 
+# Local/raw datasets (do not commit large source data)
+data/
+
 # Gradle (로컬에서 runtime 빌드 시)
 edc-core-fork/runtime/**/build/
 edc-core-fork/runtime/.gradle/

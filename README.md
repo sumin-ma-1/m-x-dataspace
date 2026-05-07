@@ -160,6 +160,22 @@ flowchart LR
 
 ---
 
+## Semantic Hub 바로가기
+
+- 안내 문서: `semantic-hub/README.md`
+- 공통 제약: `semantic-hub/shapes/core.ttl`
+- ETRI AIoT 프로파일 제약: `semantic-hub/profiles/etri-aiot/v1.ttl`
+- 실행용 병합본: `semantic-hub/shapes/merged/etri-aiot.v1.ttl`
+- 검증 실행: `semantic-hub/etri-aiot/run_validate.ps1`
+
+핵심 설명:
+
+- 시맨틱 정합성 검증은 **core + profile** 2층 구조입니다.
+- `core`는 데이터셋 공통(필수/타입/카디널리티), `profile`은 도메인별 범위/허용값을 다룹니다.
+- 현재 ETRI AIoT 데이터셋(doi: `10.22648/ETRI.2022.D.94`) 기준 SHACL 검증과 TEVV 스크립트가 포함되어 있습니다.
+
+---
+
 ## 다음에 붙이기 좋은 것
 
 - `catena-x-sw-sample`: 실제 Management URL·인증, DB-backed Outbox  
