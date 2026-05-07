@@ -160,13 +160,13 @@ flowchart LR
 
 ---
 
-## Semantic Hub 바로가기
+## Semantic Hub
 
-- 안내 문서: `semantic-hub/README.md`
-- 공통 제약: `semantic-hub/shapes/core.ttl`
-- ETRI AIoT 프로파일 제약: `semantic-hub/profiles/etri-aiot/v1.ttl`
-- 실행용 병합본: `semantic-hub/shapes/merged/etri-aiot.v1.ttl`
-- 검증 실행: `semantic-hub/etri-aiot/run_validate.ps1`
+- 안내 문서: [`semantic-hub/README.md`](semantic-hub/README.md)
+- 공통 제약: [`semantic-hub/shapes/core.ttl`](semantic-hub/shapes/core.ttl)
+- ETRI AIoT 프로파일 제약: [`semantic-hub/profiles/etri-aiot/v1.ttl`](semantic-hub/profiles/etri-aiot/v1.ttl)
+- 실행용 병합본: [`semantic-hub/shapes/merged/etri-aiot.v1.ttl`](semantic-hub/shapes/merged/etri-aiot.v1.ttl)
+- 검증 실행: [`semantic-hub/etri-aiot/run_validate.ps1`](semantic-hub/etri-aiot/run_validate.ps1)
 
 핵심 설명:
 
