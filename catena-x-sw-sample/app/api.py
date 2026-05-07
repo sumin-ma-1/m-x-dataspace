@@ -4,11 +4,18 @@ import asyncio
 import os
 import urllib.error
 import urllib.request
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from .edc_flow import EdcFlowClient
+from .semantic_mapping import (
+    build_aas_submodel_draft,
+    infer_mappings,
+    read_csv_header,
+    required_fields_coverage,
+)
 
 
 app = FastAPI(title="m-x-dataspace API", version="v1")
@@ -151,6 +158,36 @@ class TransferResponse(BaseModel):
     transfer_state: str
 
 
+class ValidateRequest(BaseModel):
+    target: Literal["provider-asset", "aas-shell"]
+    payload: dict[str, Any]
+
+
+class ValidateResult(BaseModel):
+    valid: bool
+    warnings: list[str]
+    errors: list[str]
+    extracted_columns: list[str]
+
+
+class SemanticMappingRequest(BaseModel):
+    # Either provide columns directly, or provide csv_path.
+    columns: list[str] | None = None
+    csv_path: str | None = None
+    profile_id: str = "etri-aiot.v1"
+    submodel_id: str = "urn:uuid:etri-aiot-submodel-draft"
+    submodel_id_short: str = "MachiningConditionMonitoring"
+    submodel_semantic_id: str = "urn:samm:mx:MachiningConditionMonitoring:1.0.0"
+
+
+class SemanticMappingResponse(BaseModel):
+    profile_id: str
+    input_columns: list[str]
+    mappings: list[dict[str, Any]]
+    coverage: dict[str, Any]
+    aas_submodel_draft: dict[str, Any]
+
+
 @app.get("/api/v1/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -278,4 +315,88 @@ def create_transfer(req: TransferRequest) -> TransferResponse:
     return TransferResponse(
         transfer_process_id=result.transfer_process_id,
         transfer_state=result.transfer_state,
+    )
+
+
+@app.post("/api/v1/validate", response_model=ValidateResult)
+def validate_json(req: ValidateRequest) -> ValidateResult:
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    p = req.payload
+    if req.target == "provider-asset":
+        if "@context" not in p:
+            errors.append("Missing required field: @context")
+        if "@id" not in p and "id" not in p:
+            warnings.append("Missing @id — EDC will auto-generate one")
+        if "dataAddress" not in p:
+            errors.append("Missing required field: dataAddress")
+        else:
+            da = p["dataAddress"]
+            if isinstance(da, dict) and "type" not in da and "@type" not in da:
+                errors.append("dataAddress.type is required")
+        if "properties" not in p:
+            warnings.append("No properties block — asset will have no metadata")
+    else:  # aas-shell
+        if "id" not in p:
+            errors.append("Missing required field: id")
+        if "assetInformation" not in p:
+            errors.append("Missing required field: assetInformation")
+        else:
+            ai = p["assetInformation"]
+            if isinstance(ai, dict) and "assetKind" not in ai:
+                warnings.append("assetInformation.assetKind not specified (defaults to 'Instance')")
+
+    # Extract leaf-level string keys as candidate columns for mapping agent
+    def _extract_keys(obj: Any, prefix: str = "") -> list[str]:
+        if isinstance(obj, dict):
+            keys: list[str] = []
+            for k, v in obj.items():
+                full = f"{prefix}.{k}" if prefix else k
+                if isinstance(v, (dict, list)):
+                    keys.extend(_extract_keys(v, full))
+                else:
+                    keys.append(full)
+            return keys
+        if isinstance(obj, list) and obj:
+            return _extract_keys(obj[0], prefix)
+        return [prefix] if prefix else []
+
+    columns = _extract_keys(p)
+
+    return ValidateResult(
+        valid=len(errors) == 0,
+        warnings=warnings,
+        errors=errors,
+        extracted_columns=columns,
+    )
+
+
+@app.post("/api/v1/semantic/mapping-agent", response_model=SemanticMappingResponse)
+def semantic_mapping_agent(req: SemanticMappingRequest) -> SemanticMappingResponse:
+    columns = req.columns
+    if (not columns or len(columns) == 0) and req.csv_path:
+        try:
+            columns = read_csv_header(req.csv_path)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to read csv_path: {e!r}") from e
+
+    if not columns:
+        raise HTTPException(status_code=400, detail="Provide either columns or csv_path")
+
+    mappings = infer_mappings(columns)
+    coverage = required_fields_coverage(mappings)
+    aas_draft = build_aas_submodel_draft(
+        mappings,
+        submodel_id=req.submodel_id,
+        id_short=req.submodel_id_short,
+        semantic_id=req.submodel_semantic_id,
+    )
+
+    return SemanticMappingResponse(
+        profile_id=req.profile_id,
+        input_columns=columns,
+        mappings=mappings,
+        coverage=coverage,
+        aas_submodel_draft=aas_draft,
     )

@@ -1,37 +1,255 @@
 <div class="grid gap-6 p-6">
+
+  <!-- ── File selection ── -->
   <div class="card bg-base-100 shadow-sm border border-base-300">
     <div class="card-body gap-4">
       <h2 class="card-title">JSON Upload</h2>
-      <p class="text-sm opacity-80">
-        Upload JSON and POST it directly through UI proxy routes.
+      <p class="text-sm opacity-70">
+        Upload a JSON file, validate its structure, run the Mapping Agent, then preview the AAS draft.
       </p>
 
-      <label class="form-control w-full max-w-xl">
-        <span class="label-text">Target</span>
-        <select class="select select-bordered" [(ngModel)]="target">
-          <option value="provider-asset">Provider Asset (POST /provider/api/management/v3/assets)</option>
-          <option value="aas-shell">BaSyx Shell (POST /aas/api/shells)</option>
-        </select>
-      </label>
+      <div class="w-full max-w-xl grid gap-4">
+        <label class="form-control w-full">
+          <span class="label pb-1">
+            <span class="label-text font-medium">Target</span>
+          </span>
+          <select class="select select-bordered w-full" [(ngModel)]="target">
+            <option value="provider-asset">Provider Asset (POST /provider/api/management/v3/assets)</option>
+            <option value="aas-shell">BaSyx Shell (POST /aas/api/shells)</option>
+          </select>
+        </label>
 
-      <label class="form-control w-full max-w-xl">
-        <span class="label-text">JSON file</span>
-        <input class="file-input file-input-bordered" type="file" accept=".json,application/json" (change)="onFileSelected($event)" />
-      </label>
+        <label class="form-control w-full">
+          <span class="label pb-1">
+            <span class="label-text font-medium">JSON file</span>
+          </span>
+          <input
+            class="file-input file-input-bordered w-full"
+            type="file"
+            accept=".json,application/json"
+            (change)="onFileSelected($event)"
+          />
+        </label>
+      </div>
 
-      <p *ngIf="selectedFileName" class="text-sm opacity-70">Selected: {{ selectedFileName }}</p>
+      <p *ngIf="selectedFileName" class="text-sm opacity-60">
+        Selected: <span class="font-mono">{{ selectedFileName }}</span>
+      </p>
 
-      <button class="btn btn-primary w-fit" [disabled]="loading" (click)="upload()">
-        {{ loading ? 'Uploading...' : 'Upload JSON' }}
-      </button>
-
-      <div *ngIf="result" class="mt-2">
-        <p class="text-sm font-semibold mb-1">Response</p>
-        <pre class="bg-base-200 p-4 rounded-xl overflow-auto text-xs">{{ result }}</pre>
+      <div *ngIf="uploadError && validateState === 'idle'" class="alert alert-error text-sm">
+        {{ uploadError }}
       </div>
     </div>
   </div>
 
-  <div class="alert alert-error" *ngIf="error">{{ error }}</div>
-</div>
+  <!-- ── Step 1: Validate ── -->
+  <div class="card bg-base-100 shadow-sm border border-base-300" *ngIf="parsedJson">
+    <div class="card-body gap-4">
+      <div class="flex items-center gap-3">
+        <div class="badge badge-primary badge-lg font-bold">1</div>
+        <h3 class="font-semibold text-lg">Validate</h3>
+        <span class="text-sm opacity-60">Check JSON structure against the selected target schema</span>
+      </div>
 
+      <button
+        class="btn btn-outline btn-primary w-fit"
+        [disabled]="validateState === 'loading'"
+        (click)="validate()"
+      >
+        <span *ngIf="validateState === 'loading'" class="loading loading-spinner loading-sm"></span>
+        {{ validateState === 'loading' ? 'Validating…' : 'Validate' }}
+      </button>
+
+      <div *ngIf="validateError" class="alert alert-error text-sm">{{ validateError }}</div>
+
+      <div *ngIf="validateResult" class="grid gap-2">
+        <!-- Valid / Invalid badge -->
+        <div class="flex items-center gap-2">
+          <span
+            class="badge badge-lg"
+            [class.badge-success]="validateResult.valid"
+            [class.badge-error]="!validateResult.valid"
+          >
+            {{ validateResult.valid ? '✓ Valid' : '✗ Invalid' }}
+          </span>
+          <span class="text-sm opacity-60">
+            {{ validateResult.extracted_columns.length }} field(s) extracted
+          </span>
+        </div>
+
+        <!-- Errors -->
+        <div *ngIf="validateResult.errors.length > 0" class="alert alert-error py-2 text-sm">
+          <ul class="list-disc list-inside">
+            <li *ngFor="let e of validateResult.errors">{{ e }}</li>
+          </ul>
+        </div>
+
+        <!-- Warnings -->
+        <div *ngIf="validateResult.warnings.length > 0" class="alert alert-warning py-2 text-sm">
+          <ul class="list-disc list-inside">
+            <li *ngFor="let w of validateResult.warnings">{{ w }}</li>
+          </ul>
+        </div>
+
+        <!-- Extracted columns -->
+        <div *ngIf="validateResult.extracted_columns.length > 0">
+          <p class="text-xs font-semibold opacity-60 mb-1">Extracted fields</p>
+          <div class="flex flex-wrap gap-1">
+            <span
+              *ngFor="let col of validateResult.extracted_columns"
+              class="badge badge-ghost badge-sm font-mono"
+            >{{ col }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Step 2: Mapping Agent ── -->
+  <div
+    class="card bg-base-100 shadow-sm border border-base-300"
+    *ngIf="validateResult"
+  >
+    <div class="card-body gap-4">
+      <div class="flex items-center gap-3">
+        <div class="badge badge-secondary badge-lg font-bold">2</div>
+        <h3 class="font-semibold text-lg">Mapping Agent</h3>
+        <span class="text-sm opacity-60">Map JSON fields to ETRI AIoT semantic targets</span>
+      </div>
+
+      <button
+        class="btn btn-outline btn-secondary w-fit"
+        [disabled]="mappingState === 'loading' || validateResult.extracted_columns.length === 0"
+        (click)="runMappingAgent()"
+      >
+        <span *ngIf="mappingState === 'loading'" class="loading loading-spinner loading-sm"></span>
+        {{ mappingState === 'loading' ? 'Running…' : 'Run Mapping Agent' }}
+      </button>
+
+      <div *ngIf="mappingError" class="alert alert-error text-sm">{{ mappingError }}</div>
+
+      <div *ngIf="mappingResult" class="grid gap-3">
+        <!-- Coverage badge -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <span
+            class="badge badge-lg"
+            [class.badge-success]="mappingResult.coverage.isReadyForDraft"
+            [class.badge-warning]="!mappingResult.coverage.isReadyForDraft"
+          >
+            {{ mappingResult.coverage.requiredMapped }}/{{ mappingResult.coverage.requiredTotal }} required fields
+          </span>
+          <span class="text-sm opacity-60">Profile: {{ mappingResult.profile_id }}</span>
+        </div>
+
+        <div *ngIf="mappingResult.coverage.missingRequired.length > 0" class="alert alert-warning py-2 text-sm">
+          Missing required: <span class="font-mono">{{ mappingResult.coverage.missingRequired.join(', ') }}</span>
+        </div>
+
+        <!-- Mapping table -->
+        <div class="overflow-x-auto rounded-xl border border-base-300">
+          <table class="table table-xs w-full">
+            <thead>
+              <tr>
+                <th>Source Field</th>
+                <th>Canonical Field</th>
+                <th>Target Path</th>
+                <th>Confidence</th>
+                <th>Required</th>
+                <th>Rationale</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let m of mappingResult.mappings">
+                <td class="font-mono">{{ m.sourceColumn }}</td>
+                <td class="font-mono font-semibold">{{ m.canonicalField }}</td>
+                <td class="font-mono text-xs opacity-70">{{ m.targetPath }}</td>
+                <td>
+                  <span
+                    class="badge badge-sm"
+                    [class.badge-success]="m.confidence >= 0.8"
+                    [class.badge-warning]="m.confidence >= 0.4 && m.confidence < 0.8"
+                    [class.badge-error]="m.confidence < 0.4"
+                  >{{ (m.confidence * 100).toFixed(0) }}%</span>
+                </td>
+                <td>
+                  <span class="badge badge-sm" [class.badge-neutral]="!m.required" [class.badge-primary]="m.required">
+                    {{ m.required ? 'yes' : 'no' }}
+                  </span>
+                </td>
+                <td class="text-xs opacity-60">{{ m.rationale }}</td>
+              </tr>
+              <tr *ngIf="mappingResult.mappings.length === 0">
+                <td colspan="6" class="text-center opacity-50 py-4">No mappings found</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Step 3: AAS Draft Preview ── -->
+  <div
+    class="card bg-base-100 shadow-sm border border-base-300"
+    *ngIf="mappingResult"
+  >
+    <div class="card-body gap-4">
+      <div class="flex items-center gap-3">
+        <div class="badge badge-accent badge-lg font-bold">3</div>
+        <h3 class="font-semibold text-lg">AAS Submodel Draft Preview</h3>
+        <button
+          class="btn btn-ghost btn-xs ml-auto"
+          (click)="showAasDraft = !showAasDraft"
+        >
+          {{ showAasDraft ? 'Collapse' : 'Expand' }}
+        </button>
+      </div>
+
+      <div class="grid gap-2">
+        <div class="flex flex-wrap gap-2 text-sm">
+          <span class="opacity-60">id:</span>
+          <span class="font-mono text-xs">{{ mappingResult.aas_submodel_draft['id'] }}</span>
+        </div>
+        <div class="flex flex-wrap gap-2 text-sm">
+          <span class="opacity-60">idShort:</span>
+          <span class="font-mono font-semibold">{{ mappingResult.aas_submodel_draft['idShort'] }}</span>
+          <span class="badge badge-ghost badge-sm">{{ mappingResult.aas_submodel_draft['kind'] }}</span>
+        </div>
+        <div class="text-sm opacity-60">
+          {{ mappingResult.mappings.length }} submodel element(s)
+        </div>
+      </div>
+
+      <div *ngIf="showAasDraft">
+        <pre class="bg-base-200 p-4 rounded-xl overflow-auto text-xs max-h-96">{{ aasDraftJson }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Upload JSON ── -->
+  <div class="card bg-base-100 shadow-sm border border-base-300" *ngIf="parsedJson">
+    <div class="card-body gap-4">
+      <h3 class="font-semibold text-lg">Upload to Endpoint</h3>
+      <p class="text-sm opacity-60">POST the JSON directly to the selected target endpoint.</p>
+
+      <button
+        class="btn btn-primary w-fit"
+        [disabled]="uploadState === 'loading'"
+        (click)="upload()"
+      >
+        <span *ngIf="uploadState === 'loading'" class="loading loading-spinner loading-sm"></span>
+        {{ uploadState === 'loading' ? 'Uploading…' : 'Upload JSON' }}
+      </button>
+
+      <div *ngIf="uploadError && validateState !== 'idle'" class="alert alert-error text-sm">
+        {{ uploadError }}
+      </div>
+
+      <div *ngIf="uploadResult">
+        <p class="text-sm font-semibold mb-1">Response</p>
+        <pre class="bg-base-200 p-4 rounded-xl overflow-auto text-xs max-h-60">{{ uploadResult }}</pre>
+      </div>
+    </div>
+  </div>
+
+</div>
