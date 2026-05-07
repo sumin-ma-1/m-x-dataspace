@@ -1,0 +1,44 @@
+<!--
+    Copyright (c) 2025 Fraunhofer-Gesellschaft zur Förderung der angewandten Forschung e.V.
+
+    SPDX-License-Identifier: Apache-2.0
+
+    m-x-dataspace overlay: Remove absolute-positioned empty-state tooltip; hint is rendered inside
+    lib-transfer-history-table when showFirstTransferHint is true (Consumer transfer type).
+-->
+
+<div class="mb-4">
+  <div class="flex flex-1">
+    <lib-filter-input
+      placeholder="Filter for Transfer ID, State, Transfer Type, Asset ID or Contract ID ..."
+      [focusShortcut]="['Alt', 'j']"
+      class="mr-4 grow"
+      (inputChange)="filter($event)"
+    ></lib-filter-input>
+    <lib-consumer-provider-switch
+      class="mr-4"
+      [initialType]="contractType"
+      consumerTooltip="Transfers for assets you receive"
+      providerTooltip="Transfers for assets you provide"
+      (changed)="onTypeChange($event)"
+    ></lib-consumer-provider-switch>
+    <lib-item-count-selector
+      class="mr-4"
+      [currentItemCount]="pageItemCount"
+      (itemCountChanged)="pageItemCount = $event"
+    ></lib-item-count-selector>
+    <lib-pagination
+      [items]="filteredTransferProcesses$ | async"
+      [pageItemCount]="pageItemCount"
+      (pageItems)="paginationEvent($event)"
+      class="shadow-xl rounded-2xl bg-base-300 [&_button:hover]:bg-base-100 [&_.join>button]:first:rounded-l-2xl [&_.join>button]:last:rounded-r-2xl"
+    ></lib-pagination>
+  </div>
+</div>
+
+<lib-transfer-history-table
+  class="min-h-0 flex-1"
+  [transferProcesses]="pageTransferProcesses$ | async"
+  [showFirstTransferHint]="contractType !== 'PROVIDER'"
+  (deprovisionEvent)="onDeprovision($event)"
+></lib-transfer-history-table>

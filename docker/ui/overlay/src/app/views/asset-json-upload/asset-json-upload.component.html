@@ -1,0 +1,37 @@
+<div class="grid gap-6 p-6">
+  <div class="card bg-base-100 shadow-sm border border-base-300">
+    <div class="card-body gap-4">
+      <h2 class="card-title">JSON Upload</h2>
+      <p class="text-sm opacity-80">
+        Upload JSON and POST it directly through UI proxy routes.
+      </p>
+
+      <label class="form-control w-full max-w-xl">
+        <span class="label-text">Target</span>
+        <select class="select select-bordered" [(ngModel)]="target">
+          <option value="provider-asset">Provider Asset (POST /provider/api/management/v3/assets)</option>
+          <option value="aas-shell">BaSyx Shell (POST /aas/api/shells)</option>
+        </select>
+      </label>
+
+      <label class="form-control w-full max-w-xl">
+        <span class="label-text">JSON file</span>
+        <input class="file-input file-input-bordered" type="file" accept=".json,application/json" (change)="onFileSelected($event)" />
+      </label>
+
+      <p *ngIf="selectedFileName" class="text-sm opacity-70">Selected: {{ selectedFileName }}</p>
+
+      <button class="btn btn-primary w-fit" [disabled]="loading" (click)="upload()">
+        {{ loading ? 'Uploading...' : 'Upload JSON' }}
+      </button>
+
+      <div *ngIf="result" class="mt-2">
+        <p class="text-sm font-semibold mb-1">Response</p>
+        <pre class="bg-base-200 p-4 rounded-xl overflow-auto text-xs">{{ result }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-error" *ngIf="error">{{ error }}</div>
+</div>
+

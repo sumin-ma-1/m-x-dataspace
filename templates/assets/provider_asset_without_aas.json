@@ -1,0 +1,18 @@
+{
+  "@context": {
+    "edc": "https://w3id.org/edc/v0.0.1/ns/"
+  },
+  "@type": "Asset",
+  "@id": "asset-without-aas-demo",
+  "properties": {
+    "name": "asset-without-aas-demo",
+    "description": "Provider asset without AAS linkage metadata",
+    "contenttype": "application/json",
+    "version": "1.0.0"
+  },
+  "dataAddress": {
+    "@type": "DataAddress",
+    "type": "HttpData",
+    "baseUrl": "https://httpbin.org/get"
+  }
+}

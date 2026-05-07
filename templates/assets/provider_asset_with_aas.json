@@ -1,0 +1,22 @@
+{
+  "@context": {
+    "edc": "https://w3id.org/edc/v0.0.1/ns/"
+  },
+  "@type": "Asset",
+  "@id": "asset-with-aas-demo",
+  "properties": {
+    "name": "asset-with-aas-demo",
+    "description": "Provider asset carrying AAS linkage metadata",
+    "contenttype": "application/json",
+    "version": "1.0.0",
+    "aasShellId": "urn:uuid:11111111-2222-3333-4444-555555555555",
+    "aasSubmodelId": "urn:uuid:aaaaaaa1-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "aasSemanticId": "urn:samm:com.example:DemoTelemetry:1.0.0",
+    "aasSubmodelEndpoint": "https://httpbin.org/get"
+  },
+  "dataAddress": {
+    "@type": "DataAddress",
+    "type": "HttpData",
+    "baseUrl": "https://httpbin.org/get"
+  }
+}

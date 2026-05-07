@@ -98,18 +98,27 @@
 - [ ] 검증 완료 후 정리:
   - `docker compose --profile ui down`
 
-## 10) AAS 메뉴 (정식 UI 확장)
+## 10) AAS 메타데이터 레이어 검증 (JSON 기반)
 
-- [ ] `AAS` 메뉴 진입
-- [ ] `Load AAS Assets` 버튼으로 Provider의 AAS 메타데이터 포함 자산 조회
-- [ ] `Load Shells` 버튼으로 BaSyx AAS Environment 조회
-- [ ] `Register Sample Shell` 버튼으로 샘플 shell 등록
-- [ ] 행의 Asset ID 버튼 클릭으로 Dataset 조회 폼 자동 채움
-- [ ] `Request Dataset` 실행 후 응답 JSON에서 AAS 관련 속성 확인
-  - `aasShellId`
-  - `aasSubmodelId`
-  - `aasSemanticId`
-  - `aasSubmodelEndpoint`
+AAS 전용 UI 화면 없이, JSON 템플릿 + 스크립트로 아래를 함께 검증합니다.
 
-원클릭 검증:
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify_aas.ps1`
+1. Provider가 AAS 포함/미포함 자산 2개를 EDC에 등록
+2. Consumer dataset 요청 시 AAS 포함 자산에서만 `aas*` 메타데이터 노출
+3. `aasShellId`로 BaSyx shell 조회 가능(권한/경로 가정)
+
+실행:
+
+- `python scripts/seed_assets_from_json.py`
+
+기본 템플릿:
+
+- `templates/assets/provider_asset_with_aas.json`
+- `templates/assets/provider_asset_without_aas.json`
+- `templates/aas/sample_shell.json`
+
+검증 결과:
+
+- 스크립트는 두 자산에 대한 consumer dataset 응답 요약을 출력
+- `asset-with-aas-demo`는 `hasAasMetadata: true`
+- `asset-without-aas-demo`는 `hasAasMetadata: false`
+- `basyxShellResolvable: true`면 `aasShellId`로 BaSyx shell 조회 가능

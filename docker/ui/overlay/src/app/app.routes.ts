@@ -14,6 +14,7 @@
  */
 
 import { Routes } from '@angular/router';
+import { consumerCannotAccessProviderManagementGuard } from './guards/consumer-provider-routes.guard';
 
 export const routes: Routes = [
   {
@@ -27,14 +28,17 @@ export const routes: Routes = [
   },
   {
     path: 'assets',
-    loadComponent: () => import('@eclipse-edc/dashboard-core/assets').then(m => m.AssetViewComponent),
+    canActivate: [consumerCannotAccessProviderManagementGuard],
+    loadComponent: () => import('./views/assets-merged/assets-merged.component').then(m => m.AssetsMergedComponent),
   },
   {
     path: 'policies',
+    canActivate: [consumerCannotAccessProviderManagementGuard],
     loadComponent: () => import('@eclipse-edc/dashboard-core/policies').then(m => m.PolicyViewComponent),
   },
   {
     path: 'contract-definitions',
+    canActivate: [consumerCannotAccessProviderManagementGuard],
     loadComponent: () =>
       import('@eclipse-edc/dashboard-core/contract-definitions').then(m => m.ContractDefinitionsViewComponent),
   },
@@ -50,9 +54,5 @@ export const routes: Routes = [
   {
     path: 'transfer-history',
     loadComponent: () => import('@eclipse-edc/dashboard-core/transfer').then(m => m.TransferHistoryViewComponent),
-  },
-  {
-    path: 'aas',
-    loadComponent: () => import('./views/aas/aas-view.component').then(m => m.AasViewComponent),
   },
 ];

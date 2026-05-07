@@ -5,7 +5,6 @@
   "menuItems": [
     { "text": "Home", "materialSymbol": "home_app_logo", "routerPath": "home", "divider": true },
     { "text": "Catalog", "materialSymbol": "book_ribbon", "routerPath": "catalog" },
-    { "text": "AAS", "materialSymbol": "deployed_code", "routerPath": "aas" },
     { "text": "Assets", "materialSymbol": "deployed_code_update", "routerPath": "assets" },
     { "text": "Policy Definitions", "materialSymbol": "policy", "routerPath": "policies" },
     { "text": "Contract Definitions", "materialSymbol": "contract_edit", "routerPath": "contract-definitions", "divider": true },

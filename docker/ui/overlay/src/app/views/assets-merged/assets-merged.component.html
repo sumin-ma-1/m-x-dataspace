@@ -1,0 +1,22 @@
+<div class="p-4">
+  <div role="tablist" class="tabs tabs-box mb-4">
+    <a
+      role="tab"
+      class="tab"
+      [class.tab-active]="tab === 'assets'"
+      (click)="tab = 'assets'"
+      >Assets</a
+    >
+    <a
+      role="tab"
+      class="tab"
+      [class.tab-active]="tab === 'json'"
+      (click)="tab = 'json'"
+      >JSON Upload</a
+    >
+  </div>
+
+  <app-asset-json-upload *ngIf="tab === 'json'"></app-asset-json-upload>
+  <ng-container *ngIf="tab === 'assets'" [ngComponentOutlet]="assetViewComponent"></ng-container>
+</div>
+
