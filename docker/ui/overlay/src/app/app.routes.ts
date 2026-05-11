@@ -14,7 +14,10 @@
  */
 
 import { Routes } from '@angular/router';
-import { consumerCannotAccessProviderManagementGuard } from './guards/consumer-provider-routes.guard';
+import {
+  consumerCannotAccessProviderManagementGuard,
+  providerCannotAccessCatalogGuard,
+} from './guards/consumer-provider-routes.guard';
 
 export const routes: Routes = [
   {
@@ -49,6 +52,7 @@ export const routes: Routes = [
 
   {
     path: 'catalog',
+    canActivate: [providerCannotAccessCatalogGuard],
     loadComponent: () => import('@eclipse-edc/dashboard-core/catalog').then(m => m.CatalogViewComponent),
   },
   {

@@ -41,3 +41,20 @@ export const consumerCannotAccessProviderManagementGuard: CanActivateFn = () => 
     }),
   );
 };
+
+/**
+ * Block Catalog route when the selected connector is Provider.
+ */
+export const providerCannotAccessCatalogGuard: CanActivateFn = () => {
+  const state = inject(DashboardStateService);
+  const router = inject(Router);
+
+  return state.currentEdcConfig$.pipe(
+    take(1),
+    map(edc => resolveConnector(edc)),
+    map(edc => {
+      const isProvider = (edc?.connectorName ?? '').toLowerCase() === 'provider';
+      return isProvider ? router.createUrlTree(['/assets']) : true;
+    }),
+  );
+};
