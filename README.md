@@ -152,16 +152,10 @@ flowchart TB
    ```
 
    - UI 주소(본인 PC): `http://localhost:18080`
-   - **같은 사내망에서 동료가 접속:** Docker를 띄운 PC의 **LAN IPv4**와 포트 **18080**을 쓰면 됩니다. 예: `http://192.168.x.x:18080`  
-     - `docker-compose.yml`의 `edc-ui`는 `18080:8080` 으로 호스트에 노출되며, UI는 nginx 기준 **상대 경로**(`/api/v1` 등)로 호출하므로 브라우저 주소만 위와 같으면 동료 PC에서도 동일하게 동작합니다.  
+   - **같은 사내망에서 원격 접속:** Docker를 띄운 PC의 **LAN IPv4**와 포트 **18080**을 쓰면 됩니다. 예: `http://192.168.x.x:18080`  
+     - `docker-compose.yml`의 `edc-ui`는 `18080:8080` 으로 호스트에 노출되며, UI는 nginx 기준 **상대 경로**(`/api/v1` 등)로 호출하므로 브라우저 주소만 위와 같으면 원격 PC에서도 동일하게 동작합니다.  
      - 해당 PC **Windows 방화벽**에서 **TCP 18080 인바운드**를 허용해야 합니다.
-   - **LAN IP 확인 (Windows):** PowerShell 또는 CMD에서 `ipconfig` 실행 → `이더넷` 또는 `무선 LAN 어댑터 Wi-Fi` 항목의 **IPv4 주소**를 사용합니다. (VPN 사용 시 어댑터가 여러 개일 수 있으니, 사내 LAN에 붙은 쪽을 고릅니다.)  
-     PowerShell에서 IPv4만 정리해 보려면:
-
-     ```powershell
-     Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback' } | Format-Table InterfaceAlias, IPAddress
-     ```
-   - 데모 주소는 슬랙·메일·위키 등으로 따로 공유드릴테니 연락주세요
+   - 필요 시 연락주시면 주소 공유 드리겠습니다.
    - UI는 Eclipse EDC DataDashboard 오픈소스를 빌드해 사용 → [eclipse-edc/DataDashboard](https://github.com/eclipse-edc/DataDashboard)
    - UI E2E 체크리스트: [`docs/ui-e2e-checklist.md`](docs/ui-e2e-checklist.md)
    - AAS Environment(BaSyx) 직접 API(호스트): `http://127.0.0.1:38081`
