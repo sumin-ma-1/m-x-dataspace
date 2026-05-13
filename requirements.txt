@@ -1,5 +1,5 @@
-pytest
-fastapi
-uvicorn
-pyshacl
-rdflib
+pytest
+fastapi
+uvicorn
+pyshacl
+rdflib
